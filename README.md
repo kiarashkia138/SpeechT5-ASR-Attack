@@ -23,8 +23,8 @@ Example command:
 ```bash
 python main.py --audio_path /kaggle/working/demo.mp3 \
                --target_text "attack on model was successful" \
-               --output_path "/kaggle/working/SpeechT5-AST-Attack/adversarial_audio_5dB" \
-               --snr 5.0 \
+               --output_path "/kaggle/working/SpeechT5-AST-Attack/adversarial_audio" \
+               --snr 20.0 \
                --num_iter 2000 \
                --attack_type "all"
 ```
