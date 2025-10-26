@@ -29,7 +29,7 @@ python main.py --audio_path /kaggle/working/demo.mp3 \
                --attack_type "all"
 ```
 
-## Parameters (CLI / main.py)
+## Parameters (main.py)
 - --audio_path (str, required): Path to input audio file.
 - --target_text (str, required): Desired transcription for adversarial audio.
 - --output_path (str, required): Base path for saving output audio (suffixes `_pgd.wav` or `_cw.wav` are appended).
@@ -38,7 +38,7 @@ python main.py --audio_path /kaggle/working/demo.mp3 \
 - --attack_type (str, default=`pgd`): Choose `pgd`, `cw`, or `all`.
 
 
-## How it works (brief)
+## How it works
 - PGD: iteratively updates a bounded perturbation using gradient steps to increase loss toward target transcription, projecting back into epsilon-ball.
 - C&W: treats adversarial perturbation as an optimization variable in unconstrained space (tanh trick), minimizes total loss = c * attack_loss + perturbation_loss, adjusts c via binary search for smallest perturbation that achieves the target while meeting SNR constraint.
 
