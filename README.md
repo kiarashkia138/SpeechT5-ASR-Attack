@@ -9,6 +9,8 @@ This repository contains implementations of adversarial attacks (PGD and Carlini
 - librosa
 - soundfile
 - numpy
+- huggingface_hub
+- fsspec
 
 Install required packages (example):
 ```bash

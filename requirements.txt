@@ -5,3 +5,5 @@ librosa
 soundfile
 torchaudio
 scipy
+huggingface_hub
+fsspec
