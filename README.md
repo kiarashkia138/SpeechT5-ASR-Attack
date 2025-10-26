@@ -23,8 +23,8 @@ Example command:
 ```bash
 python main.py --audio_path /kaggle/working/demo.mp3 \
                --target_text "attack on model was successful" \
-               --output_path "/kaggle/working/SpeechT5-AST-Attack/adversarial_audio1_20dB" \
-               --snr 15.0 \
+               --output_path "/kaggle/working/SpeechT5-AST-Attack/adversarial_audio_5dB" \
+               --snr 5.0 \
                --num_iter 2000 \
                --attack_type "all"
 ```
@@ -59,6 +59,7 @@ python main.py --audio_path /kaggle/working/demo.mp3 \
 - main.py — CLI entrypoint and wrappers for both attacks.
 - pgd_attack.py — PGD attack implementation (expected in same folder).
 - cw_attack.py — C&W attack implementation (contains CWAttackASR class).
+- test.py — Simple testing script to verify adversarial audio transcription.
 - README.md — this file.
 
 ## Output
@@ -66,3 +67,12 @@ python main.py --audio_path /kaggle/working/demo.mp3 \
 - main functions return (adversarial_audio_numpy, attack_info) where `attack_info` contains:
   - original_transcription, target_transcription, final_transcription
   - snr_db, attack_successful, best_const (C&W), binary_search_steps, iterations info
+
+## Testing Adversarial Audio
+Use `test.py` to verify the transcription of generated adversarial audio files:
+
+```python
+python test.py
+```
+
+The script loads the SpeechT5 ASR model and transcribes hardcoded adversarial audio files (`adversarial_audio3_5dB_cw.wav` and `adversarial_audio3_5dB_pgd.wav`). You can modify the audio paths in the script to test your own generated adversarial examples.
