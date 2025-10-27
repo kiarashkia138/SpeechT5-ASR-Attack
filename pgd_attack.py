@@ -28,16 +28,12 @@ class PGDAttackASR:
         snr = 10 * torch.log10(signal_power / noise_power)
         return snr.item()
     
-    def project_perturbation(self, original, min_snr_db=20.0):
+    def calculate_epsilon(self, original, min_snr_db=20.0):
         signal_power = torch.mean(original ** 2)
         max_noise_power = signal_power / (10 ** (min_snr_db / 10))
-        # current_noise_power = torch.mean(perturbation ** 2)
+        epsilon = torch.sqrt(max_noise_power)
         
-        # if current_noise_power > max_noise_power:
-        #     scale = torch.sqrt(max_noise_power / current_noise_power)
-        #     perturbation = perturbation * scale
-        
-        return max_noise_power
+        return epsilon
     
     def compute_loss(self, audio_values, target_ids):
         outputs = self.model(input_values=audio_values, labels=target_ids, return_dict=True)
@@ -60,11 +56,11 @@ class PGDAttackASR:
             original_outputs = self.model.generate(audio_values)
             original_transcription = self.processor.tokenizer.decode(original_outputs[0], skip_special_tokens=True)
 
-        epsilon = self.project_perturbation(original_audio, min_snr_db)
+        epsilon = self.calculate_epsilon(original_audio, min_snr_db)
         
         print(f"\nOriginal: '{original_transcription}'")
         print(f"Target: '{target_text}'")
-        print(f"Starting attack (eps={epsilon}, alpha={alpha}, iter={num_iterations}, SNR>={min_snr_db}dB)\n")
+        print(f"Starting attack (alpha={alpha}, iter={num_iterations}, SNR>={min_snr_db}dB, epsilon={epsilon.item():.6f})\n")
         
         best_adv_audio = None
         best_snr = -float('inf')
