@@ -43,8 +43,9 @@ class PGDAttackASR:
         outputs = self.model(input_values=audio_values, labels=target_ids, return_dict=True)
         return outputs.loss
     
-    def pgd_attack(self, audio, target_text, sample_rate=16000, alpha=0.005,
-                   num_iterations=300, min_snr_db=20.0, early_stop=True):
+    def pgd_attack(self, audio, target_text, sample_rate=16000, alpha=0.02,
+                   num_iterations=2000, min_snr_db=20.0, early_stop=True, 
+                   alpha_decay_patience=20, alpha_decay_factor=0.9):
         
         inputs = self.processor(audio=audio, sampling_rate=sample_rate, return_tensors="pt")
         audio_values = inputs.input_values.to(self.device)
@@ -69,6 +70,11 @@ class PGDAttackASR:
         best_snr = -float('inf')
         attack_successful = False
         
+
+        current_alpha = alpha
+        best_loss = float('inf')
+        plateau_counter = 0
+        
         for iteration in range(num_iterations):
             # current_min_snr = min_snr_db - 5.0 * (1.0 - iteration / num_iterations)
             
@@ -76,10 +82,24 @@ class PGDAttackASR:
             loss = self.compute_loss(adv_audio, target_ids)
             
             self.model.zero_grad()
+            if adv_audio.grad is not None:
+                adv_audio.grad.zero_()
+            
             loss.backward()
             grad = adv_audio.grad.data
             
-            adv_audio = adv_audio.detach() - alpha * grad.sign()
+            if loss.item() < best_loss - 0.01:
+                best_loss = loss.item()
+                plateau_counter = 0
+            else:
+                plateau_counter += 1
+            
+
+            if plateau_counter >= alpha_decay_patience:
+                current_alpha *= alpha_decay_factor
+                plateau_counter = 0
+            
+            adv_audio = adv_audio.detach() - current_alpha * grad.sign()
             perturbation = torch.clamp(adv_audio - original_audio, -epsilon, epsilon)
             adv_audio = original_audio + perturbation
             # adv_audio = self.project_perturbation(original_audio, adv_audio, current_min_snr)
@@ -97,7 +117,7 @@ class PGDAttackASR:
                     snr_ok = current_snr >= min_snr_db
                     
                     if (iteration + 1) % 100 == 0 or iteration == num_iterations - 1 or (is_match and snr_ok):
-                        print(f"Iter {iteration + 1}: Loss={loss.item():.3f}, SNR={current_snr:.1f}dB, '{adv_transcription}'")
+                        print(f"Iter {iteration + 1}: Loss={loss.item():.3f}, SNR={current_snr:.1f}dB, Alpha={current_alpha:.6f}, '{adv_transcription}'")
                     
                     if is_match and snr_ok:
                         attack_successful = True
