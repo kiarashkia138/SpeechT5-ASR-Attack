@@ -19,7 +19,6 @@ def pgd_attack(audio_path, target_text, output_path, min_snr, num_iter):
         audio=audio,
         target_text=target_text,
         sample_rate=sample_rate,
-        epsilon=0.2,
         alpha=0.01,
         num_iterations=num_iter,
         min_snr_db=min_snr,
@@ -63,7 +62,6 @@ def load_audio(audio_path, target_sr=16000):
 
 
 def save_audio(audio, output_path, sample_rate=16000):
-    # Save as WAV with 16-bit PCM for lossless storage
     sf.write(output_path, audio, sample_rate, subtype='PCM_16')
 
 

@@ -28,23 +28,22 @@ class PGDAttackASR:
         snr = 10 * torch.log10(signal_power / noise_power)
         return snr.item()
     
-    def project_perturbation(self, original, adversarial, min_snr_db=20.0):
-        perturbation = adversarial - original
+    def project_perturbation(self, original, min_snr_db=20.0):
         signal_power = torch.mean(original ** 2)
         max_noise_power = signal_power / (10 ** (min_snr_db / 10))
-        current_noise_power = torch.mean(perturbation ** 2)
+        # current_noise_power = torch.mean(perturbation ** 2)
         
-        if current_noise_power > max_noise_power:
-            scale = torch.sqrt(max_noise_power / current_noise_power)
-            perturbation = perturbation * scale
+        # if current_noise_power > max_noise_power:
+        #     scale = torch.sqrt(max_noise_power / current_noise_power)
+        #     perturbation = perturbation * scale
         
-        return original + perturbation
+        return max_noise_power
     
     def compute_loss(self, audio_values, target_ids):
         outputs = self.model(input_values=audio_values, labels=target_ids, return_dict=True)
         return outputs.loss
     
-    def pgd_attack(self, audio, target_text, sample_rate=16000, epsilon=0.1, alpha=0.005,
+    def pgd_attack(self, audio, target_text, sample_rate=16000, alpha=0.005,
                    num_iterations=300, min_snr_db=20.0, early_stop=True):
         
         inputs = self.processor(audio=audio, sampling_rate=sample_rate, return_tensors="pt")
@@ -59,6 +58,8 @@ class PGDAttackASR:
         with torch.no_grad():
             original_outputs = self.model.generate(audio_values)
             original_transcription = self.processor.tokenizer.decode(original_outputs[0], skip_special_tokens=True)
+
+        epsilon = self.project_perturbation(original_audio, min_snr_db)
         
         print(f"\nOriginal: '{original_transcription}'")
         print(f"Target: '{target_text}'")
@@ -69,7 +70,7 @@ class PGDAttackASR:
         attack_successful = False
         
         for iteration in range(num_iterations):
-            current_min_snr = min_snr_db - 5.0 * (1.0 - iteration / num_iterations)
+            # current_min_snr = min_snr_db - 5.0 * (1.0 - iteration / num_iterations)
             
             adv_audio.requires_grad = True
             loss = self.compute_loss(adv_audio, target_ids)
@@ -81,7 +82,7 @@ class PGDAttackASR:
             adv_audio = adv_audio.detach() - alpha * grad.sign()
             perturbation = torch.clamp(adv_audio - original_audio, -epsilon, epsilon)
             adv_audio = original_audio + perturbation
-            adv_audio = self.project_perturbation(original_audio, adv_audio, current_min_snr)
+            # adv_audio = self.project_perturbation(original_audio, adv_audio, current_min_snr)
             adv_audio = torch.clamp(adv_audio, -1.0, 1.0)
             
             check_now = loss.item() < 2.0 or (iteration + 1) % 10 == 0 or iteration == num_iterations - 1
@@ -95,7 +96,7 @@ class PGDAttackASR:
                     is_match = adv_transcription.strip().lower() == target_text.strip().lower()
                     snr_ok = current_snr >= min_snr_db
                     
-                    if (iteration + 1) % 20 == 0 or iteration == num_iterations - 1 or (is_match and snr_ok):
+                    if (iteration + 1) % 100 == 0 or iteration == num_iterations - 1 or (is_match and snr_ok):
                         print(f"Iter {iteration + 1}: Loss={loss.item():.3f}, SNR={current_snr:.1f}dB, '{adv_transcription}'")
                     
                     if is_match and snr_ok:
