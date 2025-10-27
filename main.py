@@ -7,7 +7,7 @@ import soundfile as sf
 import librosa
 
 
-def pgd_attack(audio_path, target_text, output_path, min_snr, num_iter):
+def pgd_attack(audio_path, target_text, output_path, min_snr, num_iter, alpha):
     audio, sample_rate = load_audio(audio_path, target_sr=16000)
     
     attacker = PGDAttackASR(
@@ -19,7 +19,7 @@ def pgd_attack(audio_path, target_text, output_path, min_snr, num_iter):
         audio=audio,
         target_text=target_text,
         sample_rate=sample_rate,
-        alpha=0.01,
+        alpha=alpha,
         num_iterations=num_iter,
         min_snr_db=min_snr,
         early_stop=True
@@ -74,10 +74,11 @@ if __name__ == "__main__":
     parser.add_argument("--num_iter", type=int, default=500)
     parser.add_argument("--binary_steps", type=int, default=5)
     parser.add_argument("--attack_type", default="pgd")
+    parser.add_argument("--alpha", type=float, default=0.01)
     args = parser.parse_args()
 
     if args.attack_type == "pgd":
-        pgd_attack(args.audio_path, args.target_text, args.output_path, args.snr, args.num_iter)
+        pgd_attack(args.audio_path, args.target_text, args.output_path, args.snr, args.num_iter, args.alpha)
     elif args.attack_type == "cw":
         cw_attack(args.audio_path, args.target_text, args.output_path, args.snr, args.num_iter, args.binary_steps)
     elif args.attack_type == "all":
